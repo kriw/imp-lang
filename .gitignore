@@ -1,0 +1,11 @@
+.omakedb
+.omakedb.lock
+.merlin
+*.swp
+*.omc
+*.cmi
+*.cmt
+*.cmo
+*.cmx
+*.o
+bin/

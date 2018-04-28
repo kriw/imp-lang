@@ -1,0 +1,12 @@
+.PHONY: all install clean
+
+USE_OCAMLFIND = true
+OCAMLPACKS[] =
+	str
+
+FILES[] =
+	main
+
+PROGRAM = ../bin/imp
+
+.DEFAULT: $(OCamlProgram $(PROGRAM), $(FILES))
