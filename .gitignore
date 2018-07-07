@@ -4,8 +4,12 @@
 *.swp
 *.omc
 *.cmi
+*.cmti
 *.cmt
 *.cmo
 *.cmx
 *.o
+lexer.ml
+parser.mli
+parser.ml
 bin/
