@@ -26,10 +26,10 @@ rule token = parse
 | "if" { IF }
 | "while" { WHILE }
 | "var" { DEC_VAR }
-| lower alnum* { VAR }
+| (lower alnum*) as po { VAR(po) }
 | newline+ { token lexbuf }
 | space+ { token lexbuf }
-| ['1'-'9'] digit* { DIGITS }
+| (['1'-'9'] digit*) as num { DIGITS(num) }
 | '=' { EQ }
 | eof { EOF }
 | _ { raise (Error (Printf.sprintf "At offset %d: unexpected character.\n" (Lexing.lexeme_start lexbuf))) }

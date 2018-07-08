@@ -5,8 +5,8 @@ open Syntax
 %token IF ELSE DEC_VAR WHILE
 %token LPAREN RPAREN LBRACE RBRACE
 %token SEMICOLON EOF
-%token <string> DIGITS EQ VAR
-%token <string> OP_ADD OP_SUB OP_MUL OP_DIV
+%token <string> DIGITS VAR
+%token OP_ADD OP_SUB OP_MUL OP_DIV EQ
 
 %start parse
 %type <Syntax.statement> parse
@@ -30,7 +30,7 @@ expr:       | digits { Ident $1 }
             | expr operator expr { Exprs($1, $2, $3) }
 ident:      | VAR { $1 }
 digits:     | DIGITS { $1 }
-operator:   | OP_ADD { Add $1 }
-            | OP_SUB { Sub $1 }
-            | OP_MUL { Mul $1 }
-            | OP_DIV { Div $1 }
+operator:   | OP_ADD { Add }
+            | OP_SUB { Sub }
+            | OP_MUL { Mul }
+            | OP_DIV { Div }
