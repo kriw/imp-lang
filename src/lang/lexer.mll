@@ -26,6 +26,8 @@ rule token = parse
 | "if" { IF }
 | "while" { WHILE }
 | "var" { DEC_VAR }
+| "true" { TRUE }
+| "false" { FALSE }
 | (lower alnum*) as po { VAR(po) }
 | newline+ { token lexbuf }
 | space+ { token lexbuf }

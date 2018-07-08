@@ -6,7 +6,7 @@ open Syntax
 %token LPAREN RPAREN LBRACE RBRACE
 %token SEMICOLON EOF
 %token <string> DIGITS VAR
-%token OP_ADD OP_SUB OP_MUL OP_DIV EQ
+%token OP_ADD OP_SUB OP_MUL OP_DIV EQ TRUE FALSE
 
 %start parse
 %type <Syntax.statement> parse
@@ -25,11 +25,14 @@ statement:  | DEC_VAR ident EQ expr { Define($2, $4) }
                 { While($3, $6) }
             | statement SEMICOLON statement
                 { Seq($1, $3) }
-expr:       | digits { Ident $1 }
+expr:       | const { Const $1 }
             | ident { Ident $1 }
             | expr operator expr { Exprs($1, $2, $3) }
 ident:      | VAR { $1 }
-digits:     | DIGITS { $1 }
+const:      | DIGITS { Int $1 }
+            | boolean { Bool $1 }
+boolean:    | TRUE { True }
+            | FALSE { False }
 operator:   | OP_ADD { Add }
             | OP_SUB { Sub }
             | OP_MUL { Mul }

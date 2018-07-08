@@ -1,7 +1,10 @@
 type ident = string
 [@@deriving show]
 
-type const = Bool of bool | Int of int
+type boolean = True | False
+[@@deriving show]
+
+type const = Bool of boolean | Int of string
 [@@deriving show]
 
 type operator =
