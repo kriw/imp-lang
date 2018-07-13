@@ -1,0 +1,9 @@
+(copy_files src/main.ml)
+(copy_files src/frontend/*.ml)
+(copy_files src/frontend/parser.mly)
+(copy_files src/frontend/lexer.mll)
+
+(executable
+    ((name main)
+    (preprocess (pps (ppx_deriving.std))))
+)

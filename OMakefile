@@ -1,3 +1,0 @@
-.PHONY: all install clean
-
-.SUBDIRS: src

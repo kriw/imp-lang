@@ -9,6 +9,7 @@
 *.cmo
 *.cmx
 *.o
+_build/
 lexer.ml
 parser.mli
 parser.ml
