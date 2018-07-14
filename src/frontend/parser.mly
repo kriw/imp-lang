@@ -28,7 +28,7 @@ statement:  | DEC_VAR ident EQ expr { Define($2, $4) }
 expr:       | const { Const $1 }
             | ident { Ident $1 }
             | expr operator expr { Exprs($1, $2, $3) }
-ident:      | VAR { $1 }
+ident:      | VAR { Ident $1 }
 const:      | DIGITS { Int $1 }
             | boolean { Bool $1 }
 boolean:    | TRUE { True }

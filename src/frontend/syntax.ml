@@ -1,4 +1,4 @@
-type ident = string
+type ident = Ident of string
 [@@deriving show]
 
 type boolean = True | False
