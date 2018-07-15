@@ -4,26 +4,53 @@ let eval_bool_expr e =
     match e with
     | Const Bool True -> true
     | Const Bool False -> false
-    (* TODO *)
+    (* TODO raise exception *)
     | _ -> false
 
 (* TODO *)
-let eval_const x = 1
+let eval_ident x = Const (Int "1")
+
+let is_bool_op op =
+    match op with
+    | And -> true
+    | Or -> true
+    | _ -> false
 
 (* TODO *)
-let eval_ident x = 1
+let eval_operator op x y =
+    let _ = match (x, y) with
+    (* TODO raise exception *)
+    | (Exprs (_, _, _), _) -> ()
+    (* TODO raise exception *)
+    | (_, Exprs (_, _, _)) -> ()
+    | _ -> () in
+    if is_bool_op op then
+        match (op, x, y) with
+        | (Or, Const Bool b1, Const Bool b2) -> Const (Int "1")
+        (* TODO raise exception *)
+        | _ -> Const (Int "1")
+    else
+        match (op, x, y) with
+        (*  TODO *)
+        | (Add, _, _) -> Const (Int "1")
+        | (Sub, _, _) -> Const (Int "1")
+        | (Mul, _, _) -> Const (Int "1")
+        | (Mod, _, _) -> Const (Int "1")
+        | (Div, _, _) -> Const (Int "1")
+        | (Eq, _, _) -> Const (Int "1")
+        | (Neq, _, _) -> Const (Int "1")
+        | (Lt, _, _) -> Const (Int "1")
+        | (LtEq, _, _) -> Const (Int "1")
+        (* TODO raise exception *)
+        | _ -> Const (Int "1")
 
-(* TODO *)
-let eval_operator x y z = 1
-
-let rec eval_expr e =
+let rec eval_exprs e =
     match e with
-    | Const c -> eval_const c
-    | Ident i -> eval_ident i
     | Exprs (e1, op, e2) -> 
-        let x = eval_expr e1 in
-        let y = eval_expr e2 in
+        let x = eval_exprs e1 in
+        let y = eval_exprs e2 in
         eval_operator op x y
+    | _ -> e
 
 (* TODO *)
 let eval_define i e = ()
