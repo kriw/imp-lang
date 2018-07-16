@@ -1,5 +1,9 @@
 open Syntax
 
+module Env = Map.Make(String);;
+
+let env = ref Env.empty
+
 let eval_bool_expr e =
     match e with
     | Const Bool True -> true
@@ -26,34 +30,42 @@ let eval_operator op x y =
     | _ -> () in
     if is_bool_op op then
         match (op, x, y) with
-        | (Or, Const Bool b1, Const Bool b2) -> Const (Int "1")
+        | (Or, Const Bool b1, Const Bool b2) -> Int "1"
         (* TODO raise exception *)
-        | _ -> Const (Int "1")
+        | _ -> Int "1"
     else
         match (op, x, y) with
         (*  TODO *)
-        | (Add, _, _) -> Const (Int "1")
-        | (Sub, _, _) -> Const (Int "1")
-        | (Mul, _, _) -> Const (Int "1")
-        | (Mod, _, _) -> Const (Int "1")
-        | (Div, _, _) -> Const (Int "1")
-        | (Eq, _, _) -> Const (Int "1")
-        | (Neq, _, _) -> Const (Int "1")
-        | (Lt, _, _) -> Const (Int "1")
-        | (LtEq, _, _) -> Const (Int "1")
+        | (Add, _, _) -> Int "1"
+        | (Sub, _, _) -> Int "1"
+        | (Mul, _, _) -> Int "1"
+        | (Mod, _, _) -> Int "1"
+        | (Div, _, _) -> Int "1"
+        | (Eq, _, _) -> Int "1"
+        | (Neq, _, _) -> Int "1"
+        | (Lt, _, _) -> Int "1"
+        | (LtEq, _, _) -> Int "1"
         (* TODO raise exception *)
-        | _ -> Const (Int "1")
+        | _ -> Int "1"
 
 let rec eval_exprs e =
     match e with
     | Exprs (e1, op, e2) -> 
         let x = eval_exprs e1 in
         let y = eval_exprs e2 in
-        eval_operator op x y
-    | _ -> e
+        eval_operator op (Const x) (Const y)
+    | Ident i -> Env.find i !env
+    | Const c -> c
 
-(* TODO *)
-let eval_define i e = ()
+let eval_define i e =
+    match e with
+    | Const c -> env := Env.add i c !env
+    | Ident src ->
+        let v = Env.find src !env in
+        env := Env.add i v !env
+    | Exprs _ ->
+        let v = eval_exprs e in
+        env := Env.add i v !env
 
 (* TODO *)
 let eval_assign i e = ()

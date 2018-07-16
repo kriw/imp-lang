@@ -1,4 +1,4 @@
-type ident = Ident of string
+type ident = string
 [@@deriving show]
 
 type boolean = True | False
@@ -23,7 +23,7 @@ type operator =
 
 type expr =
   | Const of const
-  | Ident of ident
+  | Ident of string
   | Exprs of expr * operator * expr
 [@@deriving show]
 
