@@ -97,8 +97,10 @@ let main () =
     let stdinbuf = Lexing.from_channel stdin in
     try
         let stmt = (Parser.parse Lexer.token stdinbuf) in
-        let _ = Printf.printf "%s" (Syntax.show_statement stmt) in
-        eval_statement stmt
+        let _ = Printf.printf "%s\n" (Syntax.show_statement stmt) in
+        let _ = eval_statement stmt in
+        let _ = Printf.printf "Env:\n" in
+        Env.iter (fun k v -> Printf.printf "%s = %s\n" k (Syntax.show_const v)) !env
     with
   | Lexer.Error msg ->
           Printf.eprintf "%s%!" msg
