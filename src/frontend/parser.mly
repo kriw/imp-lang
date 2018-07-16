@@ -6,7 +6,8 @@ open Syntax
 %token LPAREN RPAREN LBRACE RBRACE
 %token SEMICOLON EOF
 %token <string> DIGITS VAR
-%token OP_ADD OP_SUB OP_MUL OP_DIV EQ TRUE FALSE
+%token OP_ADD OP_SUB OP_MUL OP_DIV EQ OP_LT TRUE FALSE
+%token OP_LTEQ OP_EQ OP_NEQ OP_AND OP_OR
 
 %start parse
 %type <Syntax.statement> parse
@@ -37,3 +38,9 @@ operator:   | OP_ADD { Add }
             | OP_SUB { Sub }
             | OP_MUL { Mul }
             | OP_DIV { Div }
+            | OP_LT { Lt }
+            | OP_LTEQ { LtEq }
+            | OP_AND { And }
+            | OP_OR { Or }
+            | OP_EQ { Eq }
+            | OP_NEQ { Neq }

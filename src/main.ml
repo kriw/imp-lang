@@ -4,19 +4,7 @@ module Env = Map.Make(String);;
 
 let env = ref Env.empty
 
-let eval_bool_expr e =
-    match e with
-    | Const Bool b -> b
-    (* TODO raise exception *)
-    | _ -> false
-
 let eval_ident x = Env.find x !env
-
-let is_bool_op op =
-    match op with
-    | And -> true
-    | Or -> true
-    | _ -> false
 
 (* TODO *)
 let eval_operator op x y =
@@ -30,25 +18,20 @@ let eval_operator op x y =
     | Exprs _ -> Int (-1)
     | Ident i -> eval_ident i
     | Const c -> c in
-    if is_bool_op op then
-        match (op, x_val, y_val) with
-        | (And, Bool b1, Bool b2) -> Bool (b1 && b2)
-        | (Or, Bool b1, Bool b2) -> Bool (b1 || b2)
-        (* TODO raise exception *)
-        | _ -> Int (-1)
-    else
-        match (op, x_val, y_val) with
-        | (Add, Int a, Int b) -> Int (a + b)
-        | (Sub, Int a, Int b) -> Int (a - b)
-        | (Mul, Int a, Int b) -> Int (a * b)
-        | (Mod, Int a, Int b) -> Int (a mod b)
-        | (Div, Int a, Int b) -> Int (a / b)
-        | (Eq, Int a, Int b) -> Bool (a = b)
-        | (Neq, Int a, Int b) -> Bool (a <> b)
-        | (Lt, Int a, Int b) -> Bool (a < b)
-        | (LtEq, Int a, Int b) -> Bool (a <= b)
-        (* TODO raise exception *)
-        | _ -> Int 1
+    match (op, x_val, y_val) with
+    | (Add, Int a, Int b) -> Int (a + b)
+    | (Sub, Int a, Int b) -> Int (a - b)
+    | (Mul, Int a, Int b) -> Int (a * b)
+    | (Mod, Int a, Int b) -> Int (a mod b)
+    | (Div, Int a, Int b) -> Int (a / b)
+    | (Eq, Int a, Int b) -> Bool (a = b)
+    | (Neq, Int a, Int b) -> Bool (a <> b)
+    | (Lt, Int a, Int b) -> Bool (a < b)
+    | (LtEq, Int a, Int b) -> Bool (a <= b)
+    | (And, Bool b1, Bool b2) -> Bool (b1 && b2)
+    | (Or, Bool b1, Bool b2) -> Bool (b1 || b2)
+    (* TODO raise exception *)
+    | _ -> Int (-1)
 
 let rec eval_exprs e =
     match e with
@@ -58,6 +41,13 @@ let rec eval_exprs e =
         eval_operator op (Const x) (Const y)
     | Ident i -> Env.find i !env
     | Const c -> c
+
+let eval_bool_expr e =
+    let v = eval_exprs e in
+    match v with
+    | Bool b -> b
+    (* TODO raise exception *)
+    | _ -> false
 
 let eval_define i e =
     match e with

@@ -22,6 +22,12 @@ rule token = parse
 | '-' { OP_SUB }
 | '*' { OP_MUL }
 | '/' { OP_DIV }
+| '<' { OP_LT }
+| "<=" { OP_LTEQ }
+| "==" { OP_EQ }
+| "<>" { OP_NEQ }
+| "&&" { OP_AND }
+| "||" { OP_OR }
 | "else" { ELSE }
 | "if" { IF }
 | "while" { WHILE }
@@ -31,7 +37,7 @@ rule token = parse
 | (lower alnum*) as po { VAR(po) }
 | newline+ { token lexbuf }
 | space+ { token lexbuf }
-| (['1'-'9'] digit*) as num { DIGITS(num) }
+| (['1'-'9'] digit* | '0') as num { DIGITS(num) }
 | '=' { EQ }
 | eof { EOF }
 | _ { raise (Error (Printf.sprintf "At offset %d: unexpected character.\n" (Lexing.lexeme_start lexbuf))) }
