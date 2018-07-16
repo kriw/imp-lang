@@ -6,8 +6,7 @@ let env = ref Env.empty
 
 let eval_bool_expr e =
     match e with
-    | Const Bool True -> true
-    | Const Bool False -> false
+    | Const Bool b -> b
     (* TODO raise exception *)
     | _ -> false
 
@@ -21,31 +20,35 @@ let is_bool_op op =
 
 (* TODO *)
 let eval_operator op x y =
-    let _ = match (x, y) with
+    let x_val = match x with
     (* TODO raise exception *)
-    | (Exprs (_, _, _), _) -> ()
+    | Exprs _ -> Int (-1)
+    | Ident i -> eval_ident i
+    | Const c -> c in
+    let y_val = match y with
     (* TODO raise exception *)
-    | (_, Exprs (_, _, _)) -> ()
-    | _ -> () in
+    | Exprs _ -> Int (-1)
+    | Ident i -> eval_ident i
+    | Const c -> c in
     if is_bool_op op then
-        match (op, x, y) with
-        | (Or, Const Bool b1, Const Bool b2) -> Int "1"
+        match (op, x_val, y_val) with
+        | (And, Bool b1, Bool b2) -> Bool (b1 && b2)
+        | (Or, Bool b1, Bool b2) -> Bool (b1 || b2)
         (* TODO raise exception *)
-        | _ -> Int "1"
+        | _ -> Int (-1)
     else
-        match (op, x, y) with
-        (*  TODO *)
-        | (Add, _, _) -> Int "1"
-        | (Sub, _, _) -> Int "1"
-        | (Mul, _, _) -> Int "1"
-        | (Mod, _, _) -> Int "1"
-        | (Div, _, _) -> Int "1"
-        | (Eq, _, _) -> Int "1"
-        | (Neq, _, _) -> Int "1"
-        | (Lt, _, _) -> Int "1"
-        | (LtEq, _, _) -> Int "1"
+        match (op, x_val, y_val) with
+        | (Add, Int a, Int b) -> Int (a + b)
+        | (Sub, Int a, Int b) -> Int (a - b)
+        | (Mul, Int a, Int b) -> Int (a * b)
+        | (Mod, Int a, Int b) -> Int (a mod b)
+        | (Div, Int a, Int b) -> Int (a / b)
+        | (Eq, Int a, Int b) -> Bool (a = b)
+        | (Neq, Int a, Int b) -> Bool (a <> b)
+        | (Lt, Int a, Int b) -> Bool (a < b)
+        | (LtEq, Int a, Int b) -> Bool (a <= b)
         (* TODO raise exception *)
-        | _ -> Int "1"
+        | _ -> Int 1
 
 let rec eval_exprs e =
     match e with

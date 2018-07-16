@@ -29,10 +29,10 @@ expr:       | const { Const $1 }
             | ident { Ident $1 }
             | expr operator expr { Exprs($1, $2, $3) }
 ident:      | VAR { $1 }
-const:      | DIGITS { Int $1 }
+const:      | DIGITS { Int (int_of_string $1) }
             | boolean { Bool $1 }
-boolean:    | TRUE { True }
-            | FALSE { False }
+boolean:    | TRUE { true }
+            | FALSE { false }
 operator:   | OP_ADD { Add }
             | OP_SUB { Sub }
             | OP_MUL { Mul }
