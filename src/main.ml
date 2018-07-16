@@ -67,8 +67,15 @@ let eval_define i e =
         let v = eval_exprs e in
         env := Env.add i v !env
 
-(* TODO *)
-let eval_assign i e = ()
+let eval_assign i e =
+    match e with
+    | Const c -> env := Env.add i c !env
+    | Ident src ->
+        let v = Env.find src !env in
+        env := Env.add i v !env
+    | Exprs _ ->
+        let v = eval_exprs e in
+        env := Env.add i v !env
 
 let rec eval_statement s =
     match s with
