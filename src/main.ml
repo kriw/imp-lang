@@ -11,8 +11,7 @@ let eval_bool_expr e =
     (* TODO raise exception *)
     | _ -> false
 
-(* TODO *)
-let eval_ident x = Const (Int "1")
+let eval_ident x = Env.find x !env
 
 let is_bool_op op =
     match op with
