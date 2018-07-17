@@ -1,5 +1,2 @@
 if (1) {
-    var a = 1
-} else {
-    var b = 1
 }

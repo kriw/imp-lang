@@ -16,16 +16,20 @@ open Syntax
 parse:      | statement EOF { $1 }
 statement:  | DEC_VAR ident EQ expr { Define($2, $4) }
             | ident EQ expr { Assign($1, $3) }
+            | IF LPAREN expr RPAREN
+                LBRACE statement RBRACE
+                { If($3, $6, None) }
             | IF LPAREN expr RPAREN 
                 LBRACE statement RBRACE
                 ELSE 
                 LBRACE statement RBRACE
-                { If($3, $6, $10) }
+                { If($3, $6, Some $10) }
             | WHILE LPAREN expr RPAREN
                 LBRACE statement RBRACE
                 { While($3, $6) }
             | statement SEMICOLON statement
                 { Seq($1, $3) }
+            | (* empty *) { Emp }
 expr:       | const { Const $1 }
             | ident { Ident $1 }
             | expr operator expr { Exprs($1, $2, $3) }

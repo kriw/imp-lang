@@ -27,7 +27,8 @@ type expr =
 type statement =
   | Define of ident * expr
   | Assign of ident * expr
-  | If of expr * statement * statement
+  | If of expr * statement * statement option
   | While of expr * statement
   | Seq of statement * statement
+  | Emp
 [@@deriving show]

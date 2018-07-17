@@ -71,7 +71,10 @@ let rec eval_statement s =
     match s with
     | Define (i, e) -> eval_define i e
     | Assign (i, e) -> eval_assign i e
-    | If (cond, if_then, if_else) ->
+    | If (cond, if_then, None) ->
+            if eval_bool_expr cond then
+                eval_statement if_then
+    | If (cond, if_then, Some(if_else)) ->
             if eval_bool_expr cond then
                 eval_statement if_then
             else
@@ -83,6 +86,7 @@ let rec eval_statement s =
     | Seq (s1, s2) ->
             let _ = eval_statement s1 in
             eval_statement s2
+    | Emp -> ()
 
 let main () =
     let stdinbuf = Lexing.from_channel stdin in
