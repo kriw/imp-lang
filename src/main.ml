@@ -1,21 +1,21 @@
 open Syntax
 
+exception TypeError;;
+exception InvalidOperand;;
+
 module Env = Map.Make(String);;
 
 let env = ref Env.empty
 
 let eval_ident x = Env.find x !env
 
-(* TODO *)
 let eval_operator op x y =
     let x_val = match x with
-    (* TODO raise exception *)
-    | Exprs _ -> Int (-1)
+    | Exprs _ -> raise TypeError
     | Ident i -> eval_ident i
     | Const c -> c in
     let y_val = match y with
-    (* TODO raise exception *)
-    | Exprs _ -> Int (-1)
+    | Exprs _ -> raise TypeError
     | Ident i -> eval_ident i
     | Const c -> c in
     match (op, x_val, y_val) with
@@ -30,8 +30,7 @@ let eval_operator op x y =
     | (LtEq, Int a, Int b) -> Bool (a <= b)
     | (And, Bool b1, Bool b2) -> Bool (b1 && b2)
     | (Or, Bool b1, Bool b2) -> Bool (b1 || b2)
-    (* TODO raise exception *)
-    | _ -> Int (-1)
+    | _ -> raise InvalidOperand
 
 let rec eval_exprs e =
     match e with
@@ -46,8 +45,7 @@ let eval_bool_expr e =
     let v = eval_exprs e in
     match v with
     | Bool b -> b
-    (* TODO raise exception *)
-    | _ -> false
+    | _ -> raise TypeError
 
 let eval_define i e =
     match e with
