@@ -160,49 +160,49 @@ let emit_assign i e =
     | Syntax.Ident _ -> nop_node ()
     | Syntax.Exprs _ -> nop_node ()
 
+let last lst = List.nth lst ((List.length lst) - 1)
 let rec emit_statement s =
     match s with
-    | Syntax.Define _ -> nop_node ()
-    | Syntax.Assign (i, e) -> emit_assign i e
+    | Syntax.Define _ -> [nop_node ()]
+    | Syntax.Assign (i, e) -> [emit_assign i e]
     | Syntax.If (cond, if_then, Some if_else) ->
             let _ = emit_statement (Syntax.Assign (condition, cond)) in
             let jmp_node = new_action JmpIf in
-            let t_node = emit_statement if_then in
-            let e_node = emit_statement if_else in
+            let t_nodes = emit_statement if_then in
+            let e_nodes = emit_statement if_else in
             let f_node = follow_node () in
-            let _ = next_edge jmp_node t_node in
-            let _ = jmp_edge jmp_node e_node in
-            (* TODO add edge between the end of statement and f_node*)
-            let _ = jmp_edge t_node f_node in
-            let _ = jmp_edge e_node f_node in
-            f_node
+            let _ = next_edge jmp_node (List.hd t_nodes) in
+            let _ = jmp_edge jmp_node (List.hd e_nodes) in
+            let _ = jmp_edge (last t_nodes) f_node in
+            let _ = jmp_edge (last e_nodes) f_node in
+            [jmp_node; f_node]
     | Syntax.If (cond, if_then, None) ->
             let _ = emit_statement (Syntax.Assign (condition, cond)) in
             let jmp_node = new_action JmpIf in
-            let t_node = emit_statement if_then in
+            let t_nodes = emit_statement if_then in
             let f_node = follow_node () in
-            let _ = next_edge jmp_node t_node in
-            (* TODO add edge between the end of statement and f_node*)
-            let _ = jmp_edge t_node f_node in
+            let _ = next_edge jmp_node (List.hd t_nodes) in
+            let _ = jmp_edge (last t_nodes) f_node in
             let _ = jmp_edge jmp_node f_node in
-            f_node
+            [jmp_node; f_node]
     | Syntax.While (cond, s) ->
             let _ = emit_statement (Syntax.Assign (condition, cond)) in
             let jmp_node = new_action JmpIf in
             let body_node = emit_statement s in
             let f_node = follow_node () in
-            let _ = next_edge jmp_node body_node in
+            let _ = next_edge jmp_node (List.hd body_node) in
             let _ = jmp_edge jmp_node f_node in
-            (* TODO add edge between the end of statement and f_node*)
-            let _ = jmp_edge body_node body_node in
-            let _ = next_edge body_node f_node in
-            f_node
+            let _ = jmp_edge (last body_node) jmp_node in
+            let _ = next_edge (last body_node) f_node in
+            [jmp_node; f_node]
     | Syntax.Seq (s1, s2) ->
-        let n1 = emit_statement s1 in
-        let n2 = emit_statement s2 in
+        let ns1 = emit_statement s1 in
+        let n1 = last ns1 in
+        let ns2 = emit_statement s2 in
+        let n2 = List.hd ns2 in
         let _ = next_edge n1 n2 in
-        n2
-    | Syntax.Emp -> nop_node()
+        List.append ns1 ns2
+    | Syntax.Emp -> [nop_node()]
 
 let emit_dot s =
     let _ = emit_statement s in
