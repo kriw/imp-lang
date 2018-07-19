@@ -2,6 +2,8 @@ exception TypeError;;
 exception InvalidOperand;;
 exception TODO;;
 
+let condition = "condition"
+
 type opcode = 
   | Assign
   | JmpIf
@@ -17,17 +19,18 @@ type opcode =
   | Or
   | Lt
   | LtEq
+  | Nop
 [@@deriving show]
 
 let node_id = ref 0
 let edge_id = ref 0
 
-let new_node_id =
+let new_node_id () =
     let ret = !node_id in
     let _ = node_id := ret + 1 in
     ret
 
-let new_edge_id =
+let new_edge_id () =
     let ret = !edge_id in
     let _ = edge_id := ret + 1 in
     ret
@@ -51,9 +54,9 @@ type node =
 [@@deriving show]
 
 type edge =
-    | NextEdge of edgeId * node * node
-    | ValueEdge of edgeId * node * node
-    | JmpEdge of edgeId * node * node
+    | NextEdge of edgeId * nodeId * nodeId
+    | ValueEdge of edgeId * nodeId * nodeId
+    | JmpEdge of edgeId * nodeId * nodeId
 [@@deriving show]
 
 let edges = ref []
@@ -80,11 +83,38 @@ let find_node nid =
         | _ -> None in
     find_rec !nodes
 
+let next_edge from_node to_node =
+    let eid = new_edge_id () in
+    let edge = NextEdge (eid, from_node, to_node) in
+    let _ = add_edge edge in
+    eid
+
+let jmp_edge from_node to_node =
+    let eid = new_edge_id () in
+    let edge = JmpEdge (eid, from_node, to_node) in
+    let _ = add_edge edge in
+    eid
+
 let new_var name =
-    let nid = new_node_id in
+    let nid = new_node_id () in
     let node = ValueNode (nid, Variable name) in
     let _ = add_node node in
     nid
+
+let new_action action =
+    let nid = new_node_id () in
+    let node = ActionNode (nid, action) in
+    let _ = add_node node in
+    nid
+
+(* Follow node of if statement *)
+let nop_node () =
+    let nid = new_node_id () in
+    let node = ActionNode (nid, Nop) in
+    let _ = add_node node in
+    nid
+
+let follow_node = nop_node
 
 module Vars = Map.Make(String);;
 
@@ -123,22 +153,68 @@ let emit_operator op x y =
 
 let emit_assign i e =
     match e with
-    | Syntax.Const _ -> raise TODO
-    | Syntax.Ident _ -> raise TODO
-    | Syntax.Exprs _ -> raise TODO
+    (* | Syntax.Const _ -> raise TODO *)
+    (* | Syntax.Ident _ -> raise TODO *)
+    (* | Syntax.Exprs _ -> raise TODO *)
+    | Syntax.Const _ -> nop_node ()
+    | Syntax.Ident _ -> nop_node ()
+    | Syntax.Exprs _ -> nop_node ()
 
 let rec emit_statement s =
     match s with
-    | Syntax.Define _ -> raise TODO
+    | Syntax.Define _ -> nop_node ()
     | Syntax.Assign (i, e) -> emit_assign i e
-    | Syntax.If (cond, if_then, Some if_else) -> raise TODO
-    | Syntax.If (cond, if_then, None) -> raise TODO
-    | Syntax.While _ -> raise TODO
+    | Syntax.If (cond, if_then, Some if_else) ->
+            let _ = emit_statement (Syntax.Assign (condition, cond)) in
+            let jmp_node = new_action JmpIf in
+            let t_node = emit_statement if_then in
+            let e_node = emit_statement if_else in
+            let f_node = follow_node () in
+            let _ = next_edge jmp_node t_node in
+            let _ = jmp_edge jmp_node e_node in
+            (* TODO add edge between the end of statement and f_node*)
+            let _ = jmp_edge t_node f_node in
+            let _ = jmp_edge e_node f_node in
+            f_node
+    | Syntax.If (cond, if_then, None) ->
+            let _ = emit_statement (Syntax.Assign (condition, cond)) in
+            let jmp_node = new_action JmpIf in
+            let t_node = emit_statement if_then in
+            let f_node = follow_node () in
+            let _ = next_edge jmp_node t_node in
+            (* TODO add edge between the end of statement and f_node*)
+            let _ = jmp_edge t_node f_node in
+            let _ = jmp_edge jmp_node f_node in
+            f_node
+    | Syntax.While (cond, s) ->
+            let _ = emit_statement (Syntax.Assign (condition, cond)) in
+            let jmp_node = new_action JmpIf in
+            let body_node = emit_statement s in
+            let f_node = follow_node () in
+            let _ = next_edge jmp_node body_node in
+            let _ = jmp_edge jmp_node f_node in
+            (* TODO add edge between the end of statement and f_node*)
+            let _ = jmp_edge body_node body_node in
+            let _ = next_edge body_node f_node in
+            f_node
     | Syntax.Seq (s1, s2) ->
-        let _ = emit_statement s1 in
-        let _ = emit_statement s2 in
-        raise TODO
-    | Syntax.Emp -> ""
+        let n1 = emit_statement s1 in
+        let n2 = emit_statement s2 in
+        let _ = next_edge n1 n2 in
+        n2
+    | Syntax.Emp -> nop_node()
+
+let emit_dot s =
+    let _ = emit_statement s in
+    let f = fun e -> let (n1, n2) = match e with 
+                        | NextEdge (_, n1, n2) -> (n1, n2)
+                        | ValueEdge (_, n1, n2) -> (n1, n2)
+                        | JmpEdge (_, n1, n2) -> (n1, n2) in
+                        Printf.printf "%s -> %s\n" (show_nodeId n1) (show_nodeId n2) in
+    let _ = Printf.printf "digraph {\n" in
+    let _ = List.iter f !edges in
+    let _ = Printf.printf "}" in
+    ()
 
 let compile s =
     let vs = gather_vars s in

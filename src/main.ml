@@ -25,4 +25,9 @@ let ir () =
     | Some stmt -> Ir.compile stmt
     | None -> ()
 
-let () = ir ()
+let ir_dot () = 
+    match read_statement () with
+    | Some stmt -> Ir.emit_dot stmt
+    | None -> ()
+
+let () = ir_dot ()
