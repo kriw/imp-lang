@@ -18,6 +18,26 @@ type opcode =
   | Nop
 [@@deriving show]
 
+let syntax_to_opcode op =
+    match op with
+    | Syntax.Add -> Add
+    | Syntax.Sub -> Sub
+    | Syntax.Mul -> Mul
+    | Syntax.Mod -> Mod
+    | Syntax.Div -> Div
+    | Syntax.Eq  -> Eq
+    | Syntax.Neq -> Neq
+    | Syntax.Lt  -> Lt
+    | Syntax.LtEq -> LtEq
+    | Syntax.And -> And
+    | Syntax.Or  -> Or
+
+type nodeId = int
+[@@deriving show]
+
+type edgeId = int
+[@@deriving show]
+
 let node_id = ref 0
 let edge_id = ref 0
 
@@ -30,12 +50,6 @@ let new_edge_id () =
     let ret = !edge_id in
     let _ = edge_id := ret + 1 in
     ret
-
-type nodeId = int
-[@@deriving show]
-
-type edgeId = int
-[@@deriving show]
 
 type valueNode =
     | ConstInt of int
@@ -53,6 +67,8 @@ type edge =
     | NextEdge of edgeId * nodeId * nodeId
     | ValueEdge of edgeId * nodeId * nodeId
     | JmpEdge of edgeId * nodeId * nodeId
+    | AssignSrc of edgeId * nodeId * nodeId
+    | AssignDst of edgeId * nodeId * nodeId
 [@@deriving show]
 
 let edges = ref []
@@ -79,36 +95,47 @@ let find_node nid =
         | _ -> None in
     find_rec !nodes
 
-let next_edge from_node to_node =
+let new_edge constructor =
     let eid = new_edge_id () in
-    let edge = NextEdge (eid, from_node, to_node) in
+    let edge = constructor eid in
     let _ = add_edge edge in
     eid
+
+let next_edge from_node to_node =
+    new_edge (fun i -> NextEdge (i, from_node, to_node))
 
 let jmp_edge from_node to_node =
-    let eid = new_edge_id () in
-    let edge = JmpEdge (eid, from_node, to_node) in
-    let _ = add_edge edge in
-    eid
+    new_edge (fun i -> JmpEdge (i, from_node, to_node))
+
+let value_edge from_node to_node =
+    new_edge (fun i -> ValueEdge (i, from_node, to_node))
+
+let src_edge from_node to_node =
+    new_edge (fun i -> AssignSrc (i, from_node, to_node))
+
+let dst_edge from_node to_node =
+    new_edge (fun i -> AssignDst (i, from_node, to_node))
+
+let new_node constructor =
+    let nid = new_node_id () in
+    let node = constructor nid in
+    let _ = add_node node in
+    nid
 
 let new_var name =
-    let nid = new_node_id () in
-    let node = ValueNode (nid, Variable name) in
-    let _ = add_node node in
-    nid
+    new_node (fun i -> ValueNode (i, Variable name))
 
 let new_action action =
-    let nid = new_node_id () in
-    let node = ActionNode (nid, action) in
-    let _ = add_node node in
-    nid
+    new_node (fun i -> ActionNode (i, action))
+
+let new_const const =
+    let node = match const with
+                | Syntax.Int i -> ConstInt i
+                | Syntax.Bool b -> ConstBool b in
+    new_node (fun i -> ValueNode (i, node))
+
+let nop_node () =
+    new_node (fun i -> ActionNode (i, Nop))
 
 (* Follow node of if statement *)
-let nop_node () =
-    let nid = new_node_id () in
-    let node = ActionNode (nid, Nop) in
-    let _ = add_node node in
-    nid
-
 let follow_node = nop_node
-
