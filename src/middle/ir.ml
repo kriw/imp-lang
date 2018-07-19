@@ -93,11 +93,15 @@ let rec emit_statement s =
 
 let emit_dot s =
     let _ = emit_statement s in
-    let f = fun e -> let (n1, n2) = match e with 
+    let f = fun e -> let (nid1, nid2) = match e with 
                         | NextEdge (_, n1, n2) -> (n1, n2)
                         | ValueEdge (_, n1, n2) -> (n1, n2)
                         | JmpEdge (_, n1, n2) -> (n1, n2) in
-                        Printf.printf "%s -> %s\n" (show_nodeId n1) (show_nodeId n2) in
+                        let _n1 = find_node nid1 in
+                        let _n2 = find_node nid2 in
+                        match (_n1, _n2) with
+                        | (Some n1, Some n2) -> Printf.printf "\"%s\" -> \"%s\"\n" (show_node n1) (show_node n2)
+                        | _ -> () in
     let _ = Printf.printf "digraph {\n" in
     let _ = List.iter f !edges in
     let _ = Printf.printf "}" in
