@@ -1,3 +1,4 @@
+exception TODO;;
 let condition = "condition"
 
 type opcode = 
@@ -17,6 +18,26 @@ type opcode =
   | LtEq
   | Nop
 [@@deriving show]
+
+let is_binop op =
+    match op with
+      | Assign -> true
+      | JmpIf -> true
+      | Jmp -> false
+      | Add -> true
+      | Sub -> true
+      | Mul -> true
+      | Mod -> true
+      | Div -> true
+      | Eq -> true
+      | Neq -> true
+      | And -> true
+      | Or -> true
+      | Lt -> true
+      | LtEq -> true
+      | Nop -> false
+
+let is_uniop op = not (is_binop op)
 
 let syntax_to_opcode op =
     match op with
@@ -122,6 +143,9 @@ let new_node constructor =
     let _ = add_node node in
     nid
 
+(* Assumed EntryNode is already allocated *)
+let entry () = new_node_id ()
+
 let new_var name =
     new_node (fun i -> ValueNode (i, Variable name))
 
@@ -139,3 +163,35 @@ let nop_node () =
 
 (* Follow node of if statement *)
 let follow_node = nop_node
+
+let filter_map f lst =
+    let tmp1 = List.map f lst in
+    let tmp2 = List.filter (fun n -> match n with | Some _  -> true | _ -> false) tmp1 in
+    List.map (fun n_opt -> match n_opt with | Some n -> n | _ -> raise TODO) tmp2
+
+let hd_opt lst =
+    match lst with
+    | n :: _ -> Some n
+    | _ -> None
+
+let take1 f lst = hd_opt (filter_map f lst)
+
+let next_node nodeId =
+    let filter e = match e with
+                | NextEdge (_, i, target) when i == nodeId -> Some target
+                | JmpEdge (_, i, target) when i == nodeId -> Some target
+                | ValueEdge (_, i, target) when i == nodeId -> Some target
+                | _ -> None in
+    take1 filter !edges
+
+let find_src nodeId =
+    let filter e = match e with
+                | AssignSrc (_, i, target) when i == nodeId -> Some target
+                | _ -> None in
+    take1 filter !edges
+
+let find_dst nodeId =
+    let filter e = match e with
+                | AssignDst (_, i, target) when i == nodeId -> Some target
+                | _ -> None in
+    take1 filter !edges

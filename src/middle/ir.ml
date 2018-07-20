@@ -1,7 +1,6 @@
 open Cfg
 exception TypeError;;
 exception InvalidOperand;;
-exception TODO;;
 
 module Vars = Map.Make(String);;
 
@@ -95,6 +94,12 @@ let rec emit_statement s =
         let _ = next_edge n1 n2 in
         List.append ns1 ns2
     | Syntax.Emp -> [nop_node()]
+
+let construct_cfg s =
+    let entryId = entry () in
+    let ss = emit_statement s in
+    let _ = next_edge entryId (List.hd ss) in
+    entryId
 
 let emit_dot s =
     let _ = emit_statement s in

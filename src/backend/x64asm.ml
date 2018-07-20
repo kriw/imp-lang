@@ -1,43 +1,35 @@
-open Syntax
-
 exception TypeError;;
-exception InvalidOperand;;
+exception InvalidNode;;
 exception TODO;;
 
-module Vars = Map.Make(String);;
+let process_uniop op src = raise TODO
+let process_binop op src dst = raise TODO
 
-let vars = ref Vars.empty
+let process_action nodeId =
+    let node = Cfg.find_node nodeId in
+    match node with
+    | Some EntryNode -> raise TODO
+    | Some ActionNode (_, op) ->
+        if Cfg.is_binop op then
+            let src = Cfg.find_src nodeId in
+            let dst = Cfg.find_dst nodeId in
+            match (src, dst) with
+            | (Some n1, Some n2) -> process_binop op n1 n2
+            | _ -> raise InvalidNode
+        else if Cfg.is_uniop op then
+            let src = Cfg.find_src nodeId in
+            match src with
+            | Some n -> process_uniop n
+            | _ -> raise InvalidNode
+        else
+            raise InvalidNode
+    | _ -> raise InvalidNode
 
-let emit_operator op x y =
-    match op with
-    | Add -> raise TODO
-    | Sub -> raise TODO
-    | Mul -> raise TODO
-    | Mod -> raise TODO
-    | Div -> raise TODO
-    | Eq  -> raise TODO
-    | Neq -> raise TODO
-    | Lt  -> raise TODO
-    | LtEq -> raise TODO
-    | And -> raise TODO
-    | Or  -> raise TODO
+let rec compile_rec nodeId =
+    let result = process_action nodeId in
+    let next = Cfg.next_node nodeId in
+    match next with
+    | Some nid -> result :: (compile_rec nid)
+    | None -> []
 
-let emit_assign i e =
-    match e with
-    | Const _ -> raise TODO
-    | Ident _ -> raise TODO
-    | Exprs _ -> raise TODO
-
-let rec emit_statement s =
-    match s with
-    | Define _ -> raise TODO
-    | Assign _ -> raise TODO
-    | If _ -> raise TODO
-    | While _ -> raise TODO
-    | Seq (s1, s2) ->
-        let first = emit_statement s1 in
-        let second = emit_statement s2 in
-        first ^ second
-    | Emp -> ""
-        
-
+let compile cfg = ()

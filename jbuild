@@ -4,6 +4,7 @@
 (copy_files src/frontend/*.ml)
 (copy_files src/frontend/parser.mly)
 (copy_files src/frontend/lexer.mll)
+(copy_files src/backend/*.ml)
 
 (executable
     ((name main)
