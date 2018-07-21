@@ -22,7 +22,7 @@ type opcode =
 let is_binop op =
     match op with
       | Assign -> true
-      | JmpIf -> true
+      | JmpIf -> false
       | Jmp -> false
       | Add -> true
       | Sub -> true
@@ -38,6 +38,12 @@ let is_binop op =
       | Nop -> false
 
 let is_uniop op = not (is_binop op)
+
+let is_jmp op =
+    match op with
+    | Jmp -> true
+    | JmpIf -> true
+    | _ -> false
 
 let syntax_to_opcode op =
     match op with
@@ -193,5 +199,12 @@ let find_src nodeId =
 let find_dst nodeId =
     let filter e = match e with
                 | AssignDst (_, i, target) when i == nodeId -> Some target
+                | _ -> None in
+    take1 filter !edges
+
+
+let jmp_dst nodeId =
+    let filter e = match e with
+                | JmpEdge (_, i, target) when i == nodeId -> Some target
                 | _ -> None in
     take1 filter !edges
