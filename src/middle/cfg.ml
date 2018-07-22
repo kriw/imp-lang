@@ -19,25 +19,31 @@ type opcode =
   | Nop
 [@@deriving show]
 
+let is_noop op =
+    match op with
+    | Nop -> true
+    | _ -> false
+
 let is_binop op =
     match op with
-      | Assign -> true
-      | JmpIf -> false
-      | Jmp -> false
-      | Add -> true
-      | Sub -> true
-      | Mul -> true
-      | Mod -> true
-      | Div -> true
-      | Eq -> true
-      | Neq -> true
-      | And -> true
-      | Or -> true
-      | Lt -> true
-      | LtEq -> true
-      | Nop -> false
+    | Assign -> true
+    | JmpIf -> false
+    | Jmp -> false
+    | Add -> true
+    | Sub -> true
+    | Mul -> true
+    | Mod -> true
+    | Div -> true
+    | Eq -> true
+    | Neq -> true
+    | And -> true
+    | Or -> true
+    | Lt -> true
+    | LtEq -> true
+    | Nop -> false
 
-let is_uniop op = not (is_binop op)
+(*  TODO *)
+let is_uniop op = false
 
 let is_jmp op =
     match op with
