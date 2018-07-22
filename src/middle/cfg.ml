@@ -1,3 +1,4 @@
+open Extlib
 exception TODO;;
 let condition = "condition"
 
@@ -130,8 +131,7 @@ let find_node nid =
 
 let new_edge constructor =
     let eid = new_edge_id () in
-    let edge = constructor eid in
-    let _ = add_edge edge in
+    let _ = constructor eid |> add_edge in
     eid
 
 let next_edge from_node to_node =
@@ -151,8 +151,7 @@ let dst_edge from_node to_node =
 
 let new_node constructor =
     let nid = new_node_id () in
-    let node = constructor nid in
-    let _ = add_node node in
+    let _ = constructor nid |> add_node in
     nid
 
 (* Assumed EntryNode is already allocated *)
@@ -177,9 +176,9 @@ let nop_node () =
 let follow_node = nop_node
 
 let filter_map f lst =
-    let tmp1 = List.map f lst in
-    let tmp2 = List.filter (fun n -> match n with | Some _  -> true | _ -> false) tmp1 in
-    List.map (fun n_opt -> match n_opt with | Some n -> n | _ -> raise TODO) tmp2
+    List.map f lst
+    |> List.filter Option.is_some
+    |> List.map Option.get
 
 let hd_opt lst =
     match lst with
