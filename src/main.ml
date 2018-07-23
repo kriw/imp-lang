@@ -37,6 +37,14 @@ let compiler () =
         Printf.printf "%s\n" (X64asm.compile entry)
     | None -> ()
 
+let test () =
+    match read_statement () with
+    | Some stmt ->
+        let _ = Ir.emit_dot stmt in
+        let entry = Ir.construct_cfg stmt in
+        Printf.printf "%s\n" (X64asm.compile entry)
+    | None -> ()
 
-let () = ir ()
+
 (* let () = compiler () *)
+let () = ir_dot ()

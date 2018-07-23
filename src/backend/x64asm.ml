@@ -4,6 +4,7 @@ exception TODO;;
 
 let labels = ref []
 let asm_entry = "entry"
+let asm_exit = "exit"
 
 
 let add_target_label id =
@@ -51,15 +52,20 @@ let process_binop op nodeId =
 let process_jmp op nodeId =
     let dest_node = Cfg.jmp_dst nodeId in
     match dest_node with
-    | Some target -> add_target_label target
+    | Some target ->
+        let _ = add_target_label target in
+        (* TODO *)
+        "jmp"
     | _ -> raise (InvalidNode "process_jmp")
 
 let process_action nodeId =
     match Cfg.find_node nodeId with
-    | Some EntryNode -> asm_entry
+    | Some EntryNode _ -> asm_entry
+    | Some ExitNode _ -> asm_exit
     | Some ActionNode (_, op) ->
         if Cfg.is_jmp op then
-            process_jmp op nodeId
+            let jmp_str = process_jmp op nodeId in
+            jmp_str
         else if Cfg.is_binop op then
             process_binop op nodeId
         else if Cfg.is_uniop op then
@@ -78,7 +84,7 @@ let rec compile_rec nodeId =
     let next = Cfg.next_node nodeId in
     match next with
     | Some nid -> result :: (compile_rec nid)
-    | None -> []
+    | None -> [result]
 
 let add_labels lines = raise TODO
 

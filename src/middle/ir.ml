@@ -78,12 +78,14 @@ let rec emit_statement s =
     | Syntax.While (cond, s) ->
             let cond_node = emit_statement (Syntax.Assign (condition, cond)) in
             let jmp_node = new_action JmpIf in
+            let back_jmp = new_action JmpIf in
             let _ = value_edge jmp_node (List.hd cond_node) in
             let body_node = emit_statement s in
             let f_node = follow_node () in
             let _ = next_edge jmp_node (List.hd body_node) in
             let _ = jmp_edge jmp_node f_node in
-            let _ = jmp_edge (last body_node) jmp_node in
+            let _ = next_edge (last body_node) back_jmp in
+            let _ = jmp_edge back_jmp jmp_node in
             let _ = next_edge (last body_node) f_node in
             [jmp_node; f_node]
     | Syntax.Seq (s1, s2) ->
@@ -96,24 +98,26 @@ let rec emit_statement s =
     | Syntax.Emp -> [nop_node()]
 
 let construct_cfg s =
-    let entryId = entry () in
+    let entryId = new_entry () in
     let ss = emit_statement s in
     let _ = next_edge entryId (List.hd ss) in
+    let exitId = new_exit () in
+    let _ = next_edge (last ss) exitId in
     entryId
 
 let emit_dot s =
-    let _ = emit_statement s in
+    let _ = construct_cfg s in
     let f = fun e -> let (nid1, nid2) = match e with 
                         | NextEdge (_, n1, n2) -> (n1, n2)
                         | ValueEdge (_, n1, n2) -> (n1, n2)
                         | JmpEdge (_, n1, n2) -> (n1, n2)
                         | AssignSrc (_, n1, n2) -> (n1, n2)
                         | AssignDst (_, n1, n2) -> (n1, n2) in
-                        let _n1 = find_node nid1 in
-                        let _n2 = find_node nid2 in
-                        match (_n1, _n2) with
-                        | (Some n1, Some n2) -> Printf.printf "\"%s\" -> \"%s\"\n" (show_node n1) (show_node n2)
-                        | _ -> () in
+                    let _n1 = find_node nid1 in
+                    let _n2 = find_node nid2 in
+                    match (_n1, _n2) with
+                    | (Some n1, Some n2) -> Printf.printf "\"%s\" -> \"%s\"\n" (show_node n1) (show_node n2)
+                    | _ -> () in
     let _ = Printf.printf "digraph {\n" in
     let _ = List.iter f !edges in
     let _ = Printf.printf "}" in

@@ -52,6 +52,11 @@ let is_jmp op =
     | JmpIf -> true
     | _ -> false
 
+let is_cond_jmp op =
+    match op with
+    | JmpIf -> true
+    | _ -> false
+
 let syntax_to_opcode op =
     match op with
     | Syntax.Add -> Add
@@ -92,7 +97,8 @@ type valueNode =
 [@@deriving show]
 
 type node =
-    | EntryNode
+    | EntryNode of nodeId
+    | ExitNode of nodeId
     | ActionNode of nodeId * opcode
     | ValueNode of nodeId * valueNode
 [@@deriving show]
@@ -106,7 +112,7 @@ type edge =
 [@@deriving show]
 
 let edges = ref []
-let nodes = ref [EntryNode]
+let nodes = ref []
 
 let add_edge e = edges := e :: !edges
 let add_node n = nodes := n :: !nodes
@@ -125,6 +131,8 @@ let find_node nid =
         match nodes with
         | ActionNode (id, _) :: _ when id == nid -> Some (List.hd nodes)
         | ValueNode (id, _) :: _ when id == nid -> Some (List.hd nodes)
+        | EntryNode id :: _ when id == nid -> Some (List.hd nodes)
+        | ExitNode id :: _ when id == nid -> Some (List.hd nodes)
         | _ :: ns -> find_rec ns
         | _ -> None in
     find_rec !nodes
@@ -155,7 +163,9 @@ let new_node constructor =
     nid
 
 (* Assumed EntryNode is already allocated *)
-let entry () = new_node_id ()
+let new_entry () = new_node (fun i -> EntryNode i)
+
+let new_exit () = new_node (fun i -> ExitNode i)
 
 let new_var name =
     new_node (fun i -> ValueNode (i, Variable name))
@@ -190,8 +200,6 @@ let take1 f lst = hd_opt (filter_map f lst)
 let next_node nodeId =
     let filter e = match e with
                 | NextEdge (_, i, target) when i == nodeId -> Some target
-                | JmpEdge (_, i, target) when i == nodeId -> Some target
-                | ValueEdge (_, i, target) when i == nodeId -> Some target
                 | _ -> None in
     take1 filter !edges
 
