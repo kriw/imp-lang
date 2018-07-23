@@ -78,7 +78,7 @@ let rec emit_statement s =
     | Syntax.While (cond, s) ->
             let cond_node = emit_statement (Syntax.Assign (condition, cond)) in
             let jmp_node = new_action JmpIf in
-            let back_jmp = new_action JmpIf in
+            let back_jmp = new_action Jmp in
             let _ = value_edge jmp_node (List.hd cond_node) in
             let body_node = emit_statement s in
             let f_node = follow_node () in
@@ -86,7 +86,7 @@ let rec emit_statement s =
             let _ = jmp_edge jmp_node f_node in
             let _ = next_edge (last body_node) back_jmp in
             let _ = jmp_edge back_jmp jmp_node in
-            let _ = next_edge (last body_node) f_node in
+            let _ = next_edge back_jmp f_node in
             [jmp_node; f_node]
     | Syntax.Seq (s1, s2) ->
         let ns1 = emit_statement s1 in

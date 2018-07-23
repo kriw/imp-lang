@@ -46,5 +46,5 @@ let test () =
     | None -> ()
 
 
-(* let () = compiler () *)
-let () = ir_dot ()
+let () = compiler ()
+(* let () = ir_dot () *)

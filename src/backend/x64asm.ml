@@ -1,3 +1,4 @@
+open Extlib
 exception TypeError;;
 exception InvalidNode of string;;
 exception TODO;;
@@ -6,6 +7,8 @@ let labels = ref []
 let asm_entry = "entry"
 let asm_exit = "exit"
 
+let gen_label id =
+    Printf.sprintf "L%d" id
 
 let add_target_label id =
     let lbl = Printf.sprintf "L%d" id in
@@ -49,13 +52,31 @@ let process_binop op nodeId =
         Printf.sprintf "%s %s, %s" op_str src_str dst_str
     | _ -> raise (InvalidNode "process_binop")
 
+let process_condition nodeId =
+    let node = Cfg.find_node nodeId in
+    match node with
+    | Some ActionNode (_, op) ->
+        if Cfg.is_binop op then
+            process_binop op nodeId
+        else if Cfg.is_uniop op then
+            process_uniop op nodeId
+        else
+            raise TODO
+    | _ -> raise (InvalidNode "process_condition")
+
 let process_jmp op nodeId =
     let dest_node = Cfg.jmp_dst nodeId in
     match dest_node with
     | Some target ->
-        let _ = add_target_label target in
-        (* TODO *)
-        "jmp"
+        let dst = add_target_label target in
+        if Cfg.is_cond_jmp op then
+            let c =
+                let cond_node = Cfg.find_value nodeId in
+                (* XXX avoid `get` *)
+                process_condition (Option.get cond_node) in
+            Printf.sprintf "%s %s %s" "jmpif" dst c
+        else
+            Printf.sprintf "%s %s" "jmp" dst
     | _ -> raise (InvalidNode "process_jmp")
 
 let process_action nodeId =
@@ -80,11 +101,14 @@ let process_action nodeId =
     (* | _ -> raise (InvalidNode "process_action _") *)
 
 let rec compile_rec nodeId =
-    let result = process_action nodeId in
+    let line =
+        let lbl = gen_label nodeId in
+        let result = process_action nodeId in
+        Printf.sprintf "%s: %s" lbl result in
     let next = Cfg.next_node nodeId in
     match next with
-    | Some nid -> result :: (compile_rec nid)
-    | None -> [result]
+    | Some nid -> line :: (compile_rec nid)
+    | None -> [line]
 
 let add_labels lines = raise TODO
 

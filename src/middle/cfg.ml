@@ -215,6 +215,11 @@ let find_dst nodeId =
                 | _ -> None in
     take1 filter !edges
 
+let find_value nodeId =
+    let filter e = match e with
+                | ValueEdge (_, i, target) when i == nodeId -> Some target
+                | _ -> None in
+    take1 filter !edges
 
 let jmp_dst nodeId =
     let filter e = match e with
