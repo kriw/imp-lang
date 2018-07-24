@@ -26,10 +26,9 @@ let rec gather_vars s =
 let emit_operator op x y =
     let opcode = syntax_to_opcode op in
     let node = new_action opcode in
-    let _ = value_edge node x in
-    let _ = value_edge node y in
+    let _ = value_edge 0 node x in
+    let _ = value_edge 1 node y in
     node
-
 
 let rec emit_expr e =
     match e with
@@ -56,7 +55,7 @@ let rec emit_statement s =
     | Syntax.If (cond, if_then, Some if_else) ->
             let cond_node = emit_statement (Syntax.Assign (condition, cond)) in
             let jmp_node = new_action JmpIf in
-            let _ = value_edge jmp_node (List.hd cond_node) in
+            let _ = value_edge 0 jmp_node (List.hd cond_node) in
             let t_nodes = emit_statement if_then in
             let e_nodes = emit_statement if_else in
             let f_node = follow_node () in
@@ -68,7 +67,7 @@ let rec emit_statement s =
     | Syntax.If (cond, if_then, None) ->
             let cond_node = emit_statement (Syntax.Assign (condition, cond)) in
             let jmp_node = new_action JmpIf in
-            let _ = value_edge jmp_node (List.hd cond_node) in
+            let _ = value_edge 0 jmp_node (List.hd cond_node) in
             let t_nodes = emit_statement if_then in
             let f_node = follow_node () in
             let _ = next_edge jmp_node (List.hd t_nodes) in
@@ -79,7 +78,7 @@ let rec emit_statement s =
             let cond_node = emit_statement (Syntax.Assign (condition, cond)) in
             let jmp_node = new_action JmpIf in
             let back_jmp = new_action Jmp in
-            let _ = value_edge jmp_node (List.hd cond_node) in
+            let _ = value_edge 0 jmp_node (List.hd cond_node) in
             let body_node = emit_statement s in
             let f_node = follow_node () in
             let _ = next_edge jmp_node (List.hd body_node) in
@@ -109,7 +108,7 @@ let emit_dot s =
     let _ = construct_cfg s in
     let f = fun e -> let (nid1, nid2) = match e with 
                         | NextEdge (_, n1, n2) -> (n1, n2)
-                        | ValueEdge (_, n1, n2) -> (n1, n2)
+                        | ValueEdge (_, _, n1, n2) -> (n1, n2)
                         | JmpEdge (_, n1, n2) -> (n1, n2)
                         | AssignSrc (_, n1, n2) -> (n1, n2)
                         | AssignDst (_, n1, n2) -> (n1, n2) in

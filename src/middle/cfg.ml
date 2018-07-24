@@ -27,7 +27,7 @@ let is_noop op =
 
 let is_binop op =
     match op with
-    | Assign -> true
+    | Assign -> false
     | JmpIf -> false
     | Jmp -> false
     | Add -> true
@@ -45,6 +45,11 @@ let is_binop op =
 
 (*  TODO *)
 let is_uniop op = false
+
+let is_assign op =
+    match op with
+    | Assign -> true
+    | _ -> false
 
 let is_jmp op =
     match op with
@@ -105,7 +110,7 @@ type node =
 
 type edge =
     | NextEdge of edgeId * nodeId * nodeId
-    | ValueEdge of edgeId * nodeId * nodeId
+    | ValueEdge of edgeId * int * nodeId * nodeId
     | JmpEdge of edgeId * nodeId * nodeId
     | AssignSrc of edgeId * nodeId * nodeId
     | AssignDst of edgeId * nodeId * nodeId
@@ -121,7 +126,7 @@ let find_edge eid =
         match edges with
         | NextEdge (id, _, _) :: _ when id == eid -> Some (List.hd edges)
         | JmpEdge (id, _, _) :: _ when id == eid -> Some (List.hd edges)
-        | ValueEdge (id, _, _) :: _ when id == eid -> Some (List.hd edges)
+        | ValueEdge (id, _, _, _) :: _ when id == eid -> Some (List.hd edges)
         | _ :: _ -> find_rec edges
         | _ -> None in
     find_rec !edges
@@ -148,8 +153,8 @@ let next_edge from_node to_node =
 let jmp_edge from_node to_node =
     new_edge (fun i -> JmpEdge (i, from_node, to_node))
 
-let value_edge from_node to_node =
-    new_edge (fun i -> ValueEdge (i, from_node, to_node))
+let value_edge nth from_node to_node =
+    new_edge (fun i -> ValueEdge (i, nth, from_node, to_node))
 
 let src_edge from_node to_node =
     new_edge (fun i -> AssignSrc (i, from_node, to_node))
@@ -215,9 +220,9 @@ let find_dst nodeId =
                 | _ -> None in
     take1 filter !edges
 
-let find_value nodeId =
+let find_value nth nodeId =
     let filter e = match e with
-                | ValueEdge (_, i, target) when i == nodeId -> Some target
+                | ValueEdge (_, n, i, target) when n == nth && i == nodeId -> Some target
                 | _ -> None in
     take1 filter !edges
 
