@@ -50,7 +50,7 @@ let emit_assign i e =
 let last lst = List.nth lst ((List.length lst) - 1)
 let rec emit_statement s =
     match s with
-    | Syntax.Define _ -> [nop_node ()]
+    | Syntax.Define (i, e) -> [emit_assign i e]
     | Syntax.Assign (i, e) -> [emit_assign i e]
     | Syntax.If (cond, if_then, Some if_else) ->
             let cond_node = emit_statement (Syntax.Assign (condition, cond)) in

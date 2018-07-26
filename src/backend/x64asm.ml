@@ -4,8 +4,8 @@ exception InvalidNode of string;;
 exception TODO;;
 
 let labels = ref []
-let asm_entry = "entry"
-let asm_exit = "exit"
+let asm_entry = "enter"
+let asm_exit = String.concat "\n" ["mov rax, 60"; "xor rdi rdi"; "syscall"]
 
 module Vars = Map.Make(String);;
 
@@ -50,23 +50,32 @@ let process_noop op nodeId =
     | Cfg.Nop -> "nop"
     | _ -> raise (InvalidNode (invalid_node "process_noop" nodeId))
 
-let mem2str m = Printf.sprintf "[rbp - 0x%x]" m.offset
+let push s = Printf.sprintf "push %s" s
+let pop  s = Printf.sprintf "pop %s" s
+let mem2str m = Printf.sprintf "dword ptr [rbp - 0x%x]" m.offset
+
+let process_var v =
+    let m = get_mem v |> mem2str in
+    let tmp = "tmp" in
+    let s = Printf.sprintf "mov %s, %s" tmp m in
+    String.concat "\n" [s; push tmp]
+
+let process_const_int i = Printf.sprintf "%d" i |> push
+let process_const_bool b = if b then "1" else "0" |> push
 
 let rec to_str nodeId =
     let node = Cfg.find_node nodeId in
     match node with
-    | Some ValueNode (_, Variable v) -> (get_mem v |> mem2str, None)
-    | Some ValueNode (_, ConstInt i) -> (Printf.sprintf "%d" i, None)
-    | Some ValueNode (_, ConstBool b) ->
-        let v = if b then "1" else "0" in
-        (v, None)
+    | Some ValueNode (_, Variable v) -> process_var v
+    | Some ValueNode (_, ConstInt i) -> process_const_int i
+    | Some ValueNode (_, ConstBool b) -> process_const_bool b
     | Some ActionNode (_, op) ->
         if Cfg.is_binop op then
-            let (tmp, line) = process_binop op nodeId in
-            (tmp, Some line)
+            let line = process_binop op nodeId in
+            line
         else if Cfg.is_uniop op then
-            let (tmp, line) = process_uniop op nodeId in
-            (tmp, Some line)
+            let line = process_uniop op nodeId in
+            line
         else
             raise (InvalidNode (invalid_node "to_str" nodeId))
     | _ -> raise (InvalidNode (invalid_node "to_str" nodeId))
@@ -76,12 +85,14 @@ and process_binop op nodeId =
     let y = Cfg.find_value 1 nodeId in
     match (x, y) with
     | (Some n1, Some n2) ->
-        let tmp = "tmp" in
-        let (x_str, x_prevs) = to_str n1 in
-        let (y_str, y_prevs) = to_str n2 in
+        let tmp1 = "tmp1" in
+        let tmp2 = "tmp2" in
+        let x_str = to_str n1 in
+        let y_str = to_str n2 in
         let binop_str = fun op x y ->
-            (Printf.sprintf "mov %s, %s\n" tmp x) ^
-            (Printf.sprintf "%s %s, %s\n" op tmp y) in
+            String.concat "\n" [x; y; pop tmp1; pop tmp2;
+            (Printf.sprintf "%s %s, %s" op tmp1 tmp2);
+            (push tmp1)] in
         let op_str = match op with
             | Cfg.Add -> "add"
             | Cfg.Sub -> "sub"
@@ -95,7 +106,7 @@ and process_binop op nodeId =
             | Cfg.Lt -> raise TODO
             | Cfg.LtEq -> raise TODO
             | _ -> raise (InvalidNode (invalid_node "process_binop" nodeId)) in
-            (tmp, binop_str op_str x_str y_str)
+            binop_str op_str x_str y_str
 
     | _ -> raise (InvalidNode (invalid_node "process_binop" nodeId))
 
@@ -104,16 +115,21 @@ and process_uniop op nodeId =
     | Some n -> raise TODO
     | _ -> raise (InvalidNode (invalid_node "process_uniop" nodeId))
 
-let get_or_emp = Option.default "" 
+let get_dst nodeId =
+    let node = Cfg.find_node nodeId in
+    match node with
+    | Some ValueNode (_, Variable v) -> get_mem v |> mem2str
+    | _ -> raise (InvalidNode (invalid_node "get_src" nodeId))
+
 let process_assign nodeId =
     let src = Cfg.find_src nodeId in
     let dst = Cfg.find_dst nodeId in
     match (src, dst) with
     | (Some n1, Some n2) ->
-        let (src_str, src_prevs) = to_str n1 in
-        let (dst_str, dst_prevs) = to_str n2 in
-        let line = Printf.sprintf "mov %s, %s" dst_str src_str in
-        (get_or_emp src_prevs) ^ (get_or_emp dst_prevs) ^ line
+        let tmp = "tmp" in
+        let src = to_str n1 in
+        let dst = get_dst n2 in
+        String.concat "\n" [src; pop tmp; Printf.sprintf "mov %s, %s" dst tmp]
     | _ -> raise (InvalidNode (invalid_node "process_assign" nodeId))
 
 let process_condition nodeId =
@@ -121,10 +137,10 @@ let process_condition nodeId =
     match node with
     | Some ActionNode (_, op) ->
         if Cfg.is_binop op then
-            let (tmp, _) = process_binop op nodeId in
+            let tmp = process_binop op nodeId in
             tmp
         else if Cfg.is_uniop op then
-            let (tmp, _) = process_uniop op nodeId in
+            let tmp = process_uniop op nodeId in
             tmp
         else if Cfg.is_assign op then
             process_assign nodeId
