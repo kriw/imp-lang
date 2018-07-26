@@ -60,9 +60,12 @@ let rec emit_statement s =
             let e_nodes = emit_statement if_else in
             let f_node = follow_node () in
             let _ = next_edge jmp_node (List.hd t_nodes) in
+            let t_to_f = new_action Jmp in
+            let _ = next_edge (last t_nodes) t_to_f in
+            let _ = next_edge t_to_f (List.hd e_nodes) in
             let _ = jmp_edge jmp_node (List.hd e_nodes) in
-            let _ = jmp_edge (last t_nodes) f_node in
-            let _ = jmp_edge (last e_nodes) f_node in
+            let _ = jmp_edge t_to_f f_node in
+            let _ = next_edge (last e_nodes) f_node in
             [jmp_node; f_node]
     | Syntax.If (cond, if_then, None) ->
             let cond_node = emit_statement (Syntax.Assign (condition, cond)) in
