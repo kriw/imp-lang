@@ -4,8 +4,11 @@ exception InvalidNode of string;;
 exception TODO;;
 
 let labels = ref []
-let asm_entry = "enter"
-let asm_exit = String.concat "\n" ["mov rax, 60"; "xor rdi rdi"; "syscall"]
+let header = String.concat "\n" ["bits 64"; "start:"; "\n"]
+let asm_entry = "mov rbp, rsp"
+let asm_exit = String.concat "\n" ["mov rax, 60"; "xor rdi, rdi"; "syscall"]
+let tmp1 = "rdi"
+let tmp2 = "rsi"
 
 module Vars = Map.Make(String);;
 
@@ -52,18 +55,17 @@ let process_noop op nodeId =
 
 let push s = Printf.sprintf "push %s" s
 let pop  s = Printf.sprintf "pop %s" s
-let mem2str m = Printf.sprintf "dword ptr [rbp - 0x%x]" m.offset
+let mem2str m = Printf.sprintf "[rbp - 0x%x]" m.offset
 
 let process_var v =
     let m = get_mem v |> mem2str in
-    let tmp = "tmp" in
-    let s = Printf.sprintf "mov %s, %s" tmp m in
-    String.concat "\n" [s; push tmp]
+    let s = Printf.sprintf "mov %s, %s" tmp1 m in
+    String.concat "\n" [s; push tmp1]
 
 let process_const_int i = Printf.sprintf "%d" i |> push
 let process_const_bool b = if b then "1" else "0" |> push
 
-let rec to_str nodeId =
+let rec process_expr nodeId =
     let node = Cfg.find_node nodeId in
     match node with
     | Some ValueNode (_, Variable v) -> process_var v
@@ -77,18 +79,16 @@ let rec to_str nodeId =
             let line = process_uniop op nodeId in
             line
         else
-            raise (InvalidNode (invalid_node "to_str" nodeId))
-    | _ -> raise (InvalidNode (invalid_node "to_str" nodeId))
+            raise (InvalidNode (invalid_node "process_expr" nodeId))
+    | _ -> raise (InvalidNode (invalid_node "process_expr" nodeId))
 
 and process_binop op nodeId =
     let x = Cfg.find_value 0 nodeId in
     let y = Cfg.find_value 1 nodeId in
     match (x, y) with
     | (Some n1, Some n2) ->
-        let tmp1 = "tmp1" in
-        let tmp2 = "tmp2" in
-        let x_str = to_str n1 in
-        let y_str = to_str n2 in
+        let x_str = process_expr n1 in
+        let y_str = process_expr n2 in
         let binop_str = fun op x y ->
             String.concat "\n" [x; y; pop tmp1; pop tmp2;
             (Printf.sprintf "%s %s, %s" op tmp1 tmp2);
@@ -126,41 +126,41 @@ let process_assign nodeId =
     let dst = Cfg.find_dst nodeId in
     match (src, dst) with
     | (Some n1, Some n2) ->
-        let tmp = "tmp" in
-        let src = to_str n1 in
+        let src = process_expr n1 in
         let dst = get_dst n2 in
-        String.concat "\n" [src; pop tmp; Printf.sprintf "mov %s, %s" dst tmp]
+        String.concat "\n" [src; pop tmp1; Printf.sprintf "mov %s, %s" dst tmp1]
     | _ -> raise (InvalidNode (invalid_node "process_assign" nodeId))
 
-let process_condition nodeId =
-    let node = Cfg.find_node nodeId in
-    match node with
-    | Some ActionNode (_, op) ->
-        if Cfg.is_binop op then
-            let tmp = process_binop op nodeId in
-            tmp
-        else if Cfg.is_uniop op then
-            let tmp = process_uniop op nodeId in
-            tmp
-        else if Cfg.is_assign op then
-            process_assign nodeId
+let process_conditional_jmp nid =
+    let cond_node = (Cfg.find_value 0 nid) |> Option.map Cfg.find_node in
+    (* TODO avoid `get` *)
+    let jmp_dst = Cfg.jmp_dst nid |> Option.get |> add_target_label in
+    match cond_node with
+    | Some Some ActionNode (nodeId, op) ->
+        if Cfg.is_condop op then
+            let procs =
+                (* TODO avoid `get` *)
+                let op1 = Cfg.find_src nodeId |> Option.get |> process_expr in
+                let op2 = Cfg.find_dst nodeId |> Option.get |> process_expr in
+                String.concat "\n" [op1; op2; pop tmp1; pop tmp2;
+                                        Printf.sprintf "cmp %s, %s" tmp1 tmp2] in
+            procs ^ match op with
+            | Lt -> Printf.sprintf "jl %s" jmp_dst
+            | LtEq -> Printf.sprintf "jle %s" jmp_dst
+            | _ -> raise (InvalidNode (invalid_node "process_condition, invalid operator" nodeId))
         else
-            raise (InvalidNode (invalid_node "process_condition" nodeId))
-    | _ -> raise (InvalidNode (invalid_node "process_condition" nodeId))
+            raise (InvalidNode (invalid_node "process_condition is_condop is false" nodeId))
+    | Some Some ValueNode (_, ConstBool b) ->
+            if b then Printf.sprintf "jmp %s" jmp_dst
+            else "nop"
+    | _ -> raise (InvalidNode (invalid_node "process_condition" nid))
 
 let process_jmp op nodeId =
-    let dest_node = Cfg.jmp_dst nodeId in
-    match dest_node with
+    let dst_node = Cfg.jmp_dst nodeId in
+    match dst_node with
     | Some target ->
         let dst = add_target_label target in
-        if Cfg.is_cond_jmp op then
-            let c =
-                let cond_node = Cfg.find_value 0 nodeId in
-                (* XXX avoid `get` *)
-                process_condition (Option.get cond_node) in
-            Printf.sprintf "%s %s %s" "jmpif" dst c
-        else
-            Printf.sprintf "%s %s" "jmp" dst
+        Printf.sprintf "%s %s" "jmp" dst
     | _ -> raise (InvalidNode (invalid_node "process_jmp" nodeId))
 
 let process_action nodeId =
@@ -169,8 +169,9 @@ let process_action nodeId =
     | Some ExitNode _ -> asm_exit
     | Some ActionNode (_, op) ->
         if Cfg.is_jmp op then
-            let jmp_str = process_jmp op nodeId in
-            jmp_str
+            process_jmp op nodeId
+        else if Cfg.is_cond_jmp op then
+            process_conditional_jmp nodeId
         else if Cfg.is_assign op then
             process_assign nodeId
         else if Cfg.is_noop op then
@@ -197,4 +198,4 @@ let add_labels lines = raise TODO
 let compile cfg =
 	let lines = compile_rec cfg in
 	(* let _ = add_labels lines in *)
-    String.concat "\n" lines
+    header ^ String.concat "\n" lines

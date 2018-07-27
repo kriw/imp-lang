@@ -53,9 +53,9 @@ let rec emit_statement s =
     | Syntax.Define (i, e) -> [emit_assign i e]
     | Syntax.Assign (i, e) -> [emit_assign i e]
     | Syntax.If (cond, if_then, Some if_else) ->
-            let cond_node = emit_statement (Syntax.Assign (condition, cond)) in
+            let cond_node = emit_expr cond in
             let jmp_node = new_action JmpIf in
-            let _ = value_edge 0 jmp_node (List.hd cond_node) in
+            let _ = value_edge 0 jmp_node cond_node in
             let t_nodes = emit_statement if_then in
             let e_nodes = emit_statement if_else in
             let f_node = follow_node () in

@@ -27,9 +27,6 @@ let is_noop op =
 
 let is_binop op =
     match op with
-    | Assign -> false
-    | JmpIf -> false
-    | Jmp -> false
     | Add -> true
     | Sub -> true
     | Mul -> true
@@ -39,12 +36,16 @@ let is_binop op =
     | Neq -> true
     | And -> true
     | Or -> true
-    | Lt -> true
-    | LtEq -> true
-    | Nop -> false
+    | _ -> false
 
 (*  TODO *)
 let is_uniop op = false
+
+let is_condop op =
+    match op with
+    | Lt -> true
+    | LtEq -> true
+    | _ -> false
 
 let is_assign op =
     match op with
@@ -54,7 +55,6 @@ let is_assign op =
 let is_jmp op =
     match op with
     | Jmp -> true
-    | JmpIf -> true
     | _ -> false
 
 let is_cond_jmp op =
