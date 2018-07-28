@@ -47,7 +47,16 @@ type edge =
     | AssignDst of edgeId * nodeId * nodeId
 [@@deriving show]
 
-module Operator = struct
+module Operator : sig
+    val is_nop : opcode -> bool
+    val is_bin : opcode -> bool
+    val is_uni : opcode -> bool
+    val is_cond : opcode -> bool
+    val is_assign : opcode -> bool
+    val is_jmp : opcode -> bool
+    val is_cond_jmp : opcode -> bool
+    val syntax_to_opcode : Syntax.operator -> opcode
+end = struct
     let is_nop op =
         match op with
         | Nop -> true
@@ -105,7 +114,27 @@ module Operator = struct
         | Syntax.Or  -> Or
 end
 
-module Graph = struct
+module Graph : sig
+    val find_edge : edgeId -> edge option
+    val find_node : nodeId -> node option
+    val next_edge : nodeId -> nodeId -> edgeId
+    val jmp_edge  : nodeId -> nodeId -> edgeId
+    val value_edge : int -> nodeId -> nodeId -> edgeId
+    val src_edge : nodeId -> nodeId -> edgeId
+    val dst_edge : nodeId -> nodeId -> edgeId
+    val new_entry : unit -> nodeId
+    val new_exit : unit -> nodeId
+    val new_var : string -> nodeId
+    val new_action : opcode -> nodeId
+    val new_const : Syntax.const  -> nodeId
+    val nop_node : unit -> nodeId
+    val follow_node : unit -> nodeId
+    val next_node : nodeId -> nodeId option
+    val find_src : nodeId -> nodeId option
+    val find_dst : nodeId -> nodeId option
+    val find_value : int -> nodeId -> nodeId option
+    val jmp_dst : nodeId -> nodeId option
+end = struct
     let node_id = ref 0
     let edge_id = ref 0
 
