@@ -66,16 +66,16 @@ let process_const_int i = Printf.sprintf "%d" i |> push
 let process_const_bool b = if b then "1" else "0" |> push
 
 let rec process_expr nodeId =
-    let node = Cfg.find_node nodeId in
+    let node = Cfg.Graph.find_node nodeId in
     match node with
     | Some ValueNode (_, Variable v) -> process_var v
     | Some ValueNode (_, ConstInt i) -> process_const_int i
     | Some ValueNode (_, ConstBool b) -> process_const_bool b
     | Some ActionNode (_, op) ->
-        if Cfg.is_binop op then
+        if Cfg.Operator.is_binop op then
             let line = process_binop op nodeId in
             line
-        else if Cfg.is_uniop op then
+        else if Cfg.Operator.is_uniop op then
             let line = process_uniop op nodeId in
             line
         else
@@ -83,8 +83,8 @@ let rec process_expr nodeId =
     | _ -> raise (InvalidNode (invalid_node "process_expr" nodeId))
 
 and process_binop op nodeId =
-    let x = Cfg.find_value 0 nodeId in
-    let y = Cfg.find_value 1 nodeId in
+    let x = Cfg.Graph.find_value 0 nodeId in
+    let y = Cfg.Graph.find_value 1 nodeId in
     match (x, y) with
     | (Some n1, Some n2) ->
         let x_str = process_expr n1 in
@@ -111,19 +111,19 @@ and process_binop op nodeId =
     | _ -> raise (InvalidNode (invalid_node "process_binop" nodeId))
 
 and process_uniop op nodeId =
-    match Cfg.find_src nodeId with
+    match Cfg.Graph.find_src nodeId with
     | Some n -> raise TODO
     | _ -> raise (InvalidNode (invalid_node "process_uniop" nodeId))
 
 let get_dst nodeId =
-    let node = Cfg.find_node nodeId in
+    let node = Cfg.Graph.find_node nodeId in
     match node with
     | Some ValueNode (_, Variable v) -> get_mem v |> mem2str
     | _ -> raise (InvalidNode (invalid_node "get_src" nodeId))
 
 let process_assign nodeId =
-    let src = Cfg.find_src nodeId in
-    let dst = Cfg.find_dst nodeId in
+    let src = Cfg.Graph.find_src nodeId in
+    let dst = Cfg.Graph.find_dst nodeId in
     match (src, dst) with
     | (Some n1, Some n2) ->
         let src = process_expr n1 in
@@ -132,16 +132,16 @@ let process_assign nodeId =
     | _ -> raise (InvalidNode (invalid_node "process_assign" nodeId))
 
 let process_conditional_jmp nid =
-    let cond_node = (Cfg.find_value 0 nid) |> Option.map Cfg.find_node in
+    let cond_node = (Cfg.Graph.find_value 0 nid) |> Option.map Cfg.Graph.find_node in
     (* TODO avoid `get` *)
-    let jmp_dst = Cfg.jmp_dst nid |> Option.get |> add_target_label in
+    let jmp_dst = Cfg.Graph.jmp_dst nid |> Option.get |> add_target_label in
     match cond_node with
     | Some Some ActionNode (nodeId, op) ->
-        if Cfg.is_condop op then
+        if Cfg.Operator.is_condop op then
             let procs =
                 (* TODO avoid `get` *)
-                let op1 = Cfg.find_src nodeId |> Option.get |> process_expr in
-                let op2 = Cfg.find_dst nodeId |> Option.get |> process_expr in
+                let op1 = Cfg.Graph.find_src nodeId |> Option.get |> process_expr in
+                let op2 = Cfg.Graph.find_dst nodeId |> Option.get |> process_expr in
                 String.concat "\n" [op1; op2; pop tmp1; pop tmp2;
                                         Printf.sprintf "cmp %s, %s" tmp1 tmp2] in
             procs ^ match op with
@@ -156,7 +156,7 @@ let process_conditional_jmp nid =
     | _ -> raise (InvalidNode (invalid_node "process_condition" nid))
 
 let process_jmp op nodeId =
-    let dst_node = Cfg.jmp_dst nodeId in
+    let dst_node = Cfg.Graph.jmp_dst nodeId in
     match dst_node with
     | Some target ->
         let dst = add_target_label target in
@@ -164,17 +164,17 @@ let process_jmp op nodeId =
     | _ -> raise (InvalidNode (invalid_node "process_jmp" nodeId))
 
 let process_action nodeId =
-    match Cfg.find_node nodeId with
+    match Cfg.Graph.find_node nodeId with
     | Some EntryNode _ -> asm_entry
     | Some ExitNode _ -> asm_exit
     | Some ActionNode (_, op) ->
-        if Cfg.is_jmp op then
+        if Cfg.Operator.is_jmp op then
             process_jmp op nodeId
-        else if Cfg.is_cond_jmp op then
+        else if Cfg.Operator.is_cond_jmp op then
             process_conditional_jmp nodeId
-        else if Cfg.is_assign op then
+        else if Cfg.Operator.is_assign op then
             process_assign nodeId
-        else if Cfg.is_noop op then
+        else if Cfg.Operator.is_noop op then
             process_noop op nodeId
         else
             let err = Printf.sprintf "process_action Some %s" (Cfg.show_opcode op) in
@@ -188,7 +188,7 @@ let rec compile_rec nodeId =
         let lbl = gen_label nodeId in
         let result = process_action nodeId in
         Printf.sprintf "%s: %s" lbl result in
-    let next = Cfg.next_node nodeId in
+    let next = Cfg.Graph.next_node nodeId in
     match next with
     | Some nid -> line :: (compile_rec nid)
     | None -> [line]
