@@ -48,12 +48,12 @@ type edge =
 [@@deriving show]
 
 module Operator = struct
-    let is_noop op =
+    let is_nop op =
         match op with
         | Nop -> true
         | _ -> false
 
-    let is_binop op =
+    let is_bin op =
         match op with
         | Add -> true
         | Sub -> true
@@ -67,9 +67,9 @@ module Operator = struct
         | _ -> false
 
     (*  TODO *)
-    let is_uniop op = false
+    let is_uni op = false
 
-    let is_condop op =
+    let is_cond op =
         match op with
         | Lt -> true
         | LtEq -> true

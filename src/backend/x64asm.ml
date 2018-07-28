@@ -72,10 +72,10 @@ let rec process_expr nodeId =
     | Some ValueNode (_, ConstInt i) -> process_const_int i
     | Some ValueNode (_, ConstBool b) -> process_const_bool b
     | Some ActionNode (_, op) ->
-        if Cfg.Operator.is_binop op then
+        if Cfg.Operator.is_bin op then
             let line = process_binop op nodeId in
             line
-        else if Cfg.Operator.is_uniop op then
+        else if Cfg.Operator.is_uni op then
             let line = process_uniop op nodeId in
             line
         else
@@ -137,7 +137,7 @@ let process_conditional_jmp nid =
     let jmp_dst = Cfg.Graph.jmp_dst nid |> Option.get |> add_target_label in
     match cond_node with
     | Some Some ActionNode (nodeId, op) ->
-        if Cfg.Operator.is_condop op then
+        if Cfg.Operator.is_cond op then
             let procs =
                 (* TODO avoid `get` *)
                 let op1 = Cfg.Graph.find_src nodeId |> Option.get |> process_expr in
@@ -174,7 +174,7 @@ let process_action nodeId =
             process_conditional_jmp nodeId
         else if Cfg.Operator.is_assign op then
             process_assign nodeId
-        else if Cfg.Operator.is_noop op then
+        else if Cfg.Operator.is_nop op then
             process_noop op nodeId
         else
             let err = Printf.sprintf "process_action Some %s" (Cfg.show_opcode op) in
