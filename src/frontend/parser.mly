@@ -7,7 +7,7 @@ open Syntax
 %token SEMICOLON EOF
 %token <string> DIGITS VAR
 %token OP_ADD OP_SUB OP_MUL OP_DIV EQ OP_LT TRUE FALSE
-%token OP_LTEQ OP_EQ OP_NEQ OP_AND OP_OR
+%token OP_LTEQ OP_EQ OP_NEQ OP_AND OP_OR OP_NOT
 
 %start parse
 %type <Syntax.statement> parse
@@ -48,3 +48,4 @@ operator:   | OP_ADD { Add }
             | OP_OR { Or }
             | OP_EQ { Eq }
             | OP_NEQ { Neq }
+            | OP_NOT { Not }

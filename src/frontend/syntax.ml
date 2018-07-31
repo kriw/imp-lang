@@ -12,6 +12,7 @@ type operator =
   | Div
   | Eq 
   | Neq
+  | Not
   | And
   | Or 
   | Lt

@@ -4,20 +4,21 @@ let condition = "condition"
 
 type opcode = 
   | Assign
-  | JmpIf
-  | Jmp
+  | And
   | Add
-  | Sub
-  | Mul
-  | Mod
   | Div
   | Eq
-  | Neq
-  | And
+  | JmpIf
+  | Jmp
   | Or
   | Lt
   | LtEq
+  | Mul
+  | Mod
+  | Neq
+  | Not
   | Nop
+  | Sub
 [@@deriving show]
 
 type nodeId = int
@@ -76,7 +77,10 @@ end = struct
         | _ -> false
 
     (*  TODO *)
-    let is_uni op = false
+    let is_uni op =
+        match op with
+        | Not -> true
+        | _ -> false
 
     let is_cond op =
         match op with
@@ -112,9 +116,12 @@ end = struct
         | Syntax.LtEq -> LtEq
         | Syntax.And -> And
         | Syntax.Or  -> Or
+        | Syntax.Not -> Not
 end
 
 module Graph : sig
+    val edges : edge list ref
+    val nodes : node list ref
     val find_edge : edgeId -> edge option
     val find_node : nodeId -> node option
     val next_edge : nodeId -> nodeId -> edgeId

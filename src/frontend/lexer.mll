@@ -23,6 +23,7 @@ rule token = parse
 | '*' { OP_MUL }
 | '/' { OP_DIV }
 | '<' { OP_LT }
+| '~' { OP_NOT }
 | "<=" { OP_LTEQ }
 | "==" { OP_EQ }
 | "<>" { OP_NEQ }
