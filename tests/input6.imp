@@ -1,0 +1,4 @@
+var a = false
+if(~a) {
+    var b = 0
+}
