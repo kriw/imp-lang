@@ -5,7 +5,7 @@ exception TODO;;
 
 let labels = ref []
 let header = String.concat "\n" ["bits 64"; "start:"; "\n"]
-let asm_entry = "mov rbp, rsp"
+let asm_entry = fun size -> String.concat "\n" ["mov rbp, rsp"; Printf.sprintf "sub rsp, %d" size]
 let asm_exit = String.concat "\n" ["mov rax, 60"; "xor rdi, rdi"; "syscall"]
 let tmp1 = "rdi"
 let tmp2 = "rsi"
@@ -22,10 +22,10 @@ let invalid_node p nodeId = Printf.sprintf "%s @ %s" p (Cfg.show_nodeId nodeId)
 
 let var_map = ref Vars.empty
 let mems = ref []
-(* Assumed size: 4, type: Int | Bool *)
-let mem_size = 4
+(* Assumed size: 8, type: Int | Bool *)
+let mem_size = 8
 (* Offset from rbp *)
-let cur_offset = ref 0
+let cur_offset = ref 0x8
 let get_mem var =
     match Vars.find_opt var !var_map with
     | Some m -> m
@@ -93,23 +93,29 @@ and process_binop op nodeId =
             String.concat "\n" [x; y; pop tmp1; pop tmp2;
             (Printf.sprintf "%s %s, %s" op tmp1 tmp2);
             (push tmp1)] in
-        let op_str = match op with
-            | Cfg.Add -> "add"
-            | Cfg.Sub -> "sub"
-            | Cfg.Mul -> "mul"
-            | Cfg.Mod -> raise TODO
-            | Cfg.Div -> raise TODO
+        let div_str = fun x y is_mod ->
+            let rax = "rax" in
+            let rdx = "rdx" in
+            let ret_reg = if is_mod then (push rax) else (push rdx) in
+            let init = Printf.sprintf "xor %s, %s" rdx rdx in
+            String.concat "\n" [x_str; y_str; pop tmp1; pop rax;
+            init; (Printf.sprintf "div %s" tmp1); ret_reg] in
+        let ret = match op with
+            | Cfg.Add -> binop_str "add" x_str y_str
+            | Cfg.Sub -> binop_str "sub" x_str y_str
+            | Cfg.Mul -> binop_str "mul" x_str y_str
+            | Cfg.Mod -> div_str x_str y_str true
+            | Cfg.Div -> div_str x_str y_str false
             | Cfg.Eq -> raise TODO
             | Cfg.Neq -> raise TODO
-            | Cfg.And -> "and"
-            | Cfg.Or -> "or"
+            | Cfg.And -> binop_str "and" x_str y_str
+            | Cfg.Or -> binop_str "or" x_str y_str
             | Cfg.Lt -> raise TODO
             | Cfg.LtEq -> raise TODO
             | _ -> raise (InvalidNode (invalid_node "process_binop" nodeId)) in
-            binop_str op_str x_str y_str
-
+        ret
     | _ -> raise (InvalidNode (invalid_node "process_binop" nodeId))
-
+ 
 and process_uniop op nodeId =
     match Cfg.Graph.find_src nodeId with
     | Some n -> raise TODO
@@ -165,7 +171,7 @@ let process_jmp op nodeId =
 
 let process_action nodeId =
     match Cfg.Graph.find_node nodeId with
-    | Some EntryNode _ -> asm_entry
+    | Some EntryNode _ -> asm_entry 100 (* TODO *)
     | Some ExitNode _ -> asm_exit
     | Some ActionNode (_, op) ->
         if Cfg.Operator.is_jmp op then
