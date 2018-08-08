@@ -50,7 +50,8 @@ type edge =
 
 module Operator : sig
     val is_nop : opcode -> bool
-    val is_bin : opcode -> bool
+    val is_arith_bin : opcode -> bool
+    val is_logic_bin : opcode -> bool
     val is_uni : opcode -> bool
     val is_cond : opcode -> bool
     val is_assign : opcode -> bool
@@ -63,7 +64,7 @@ end = struct
         | Nop -> true
         | _ -> false
 
-    let is_bin op =
+    let is_arith_bin op =
         match op with
         | Add -> true
         | Sub -> true
@@ -84,9 +85,16 @@ end = struct
 
     let is_cond op =
         match op with
+        | And -> true
+        | Or -> true
+        | Eq -> true
+        | Neq -> true
+        | Not -> true
         | Lt -> true
         | LtEq -> true
         | _ -> false
+
+    let is_logic_bin op = is_cond op
 
     let is_assign op =
         match op with

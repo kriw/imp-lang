@@ -72,15 +72,16 @@ let rec process_expr nodeId =
     | Some ValueNode (_, ConstInt i) -> process_const_int i
     | Some ValueNode (_, ConstBool b) -> process_const_bool b
     | Some ActionNode (_, op) ->
-        if Cfg.Operator.is_bin op then
+        if Cfg.Operator.is_arith_bin op 
+        || Cfg.Operator.is_logic_bin op then
             let line = process_binop op nodeId in
             line
         else if Cfg.Operator.is_uni op then
             let line = process_uniop op nodeId in
             line
         else
-            raise (InvalidNode (invalid_node "process_expr" nodeId))
-    | _ -> raise (InvalidNode (invalid_node "process_expr" nodeId))
+            raise (InvalidNode (invalid_node "process_expr (ActionNode)" nodeId))
+    | _ -> raise (InvalidNode (invalid_node "process_expr (else)" nodeId))
 
 and process_binop op nodeId =
     let x = Cfg.Graph.find_value 0 nodeId in
@@ -93,6 +94,16 @@ and process_binop op nodeId =
             String.concat "\n" [x; y; pop tmp1; pop tmp2;
             (Printf.sprintf "%s %s, %s" op tmp1 tmp2);
             (push tmp1)] in
+        let binop_cond_str = fun op x y ->
+            let po = match op with
+            | Cfg.Eq -> Printf.sprintf "sete %s" tmp1
+            | Cfg.Neq -> Printf.sprintf "setne %s" tmp1
+            | Cfg.Lt -> Printf.sprintf "setl %s" tmp1
+            | Cfg.LtEq -> Printf.sprintf "setle %s" tmp1
+            | _ -> raise TODO in
+            String.concat "\n" [x; y; pop tmp1; pop tmp2;
+            (Printf.sprintf "cmp %s, %s" tmp1 tmp2);
+            po; (push tmp1)] in
         let div_str = fun x y is_mod ->
             let rax = "rax" in
             let rdx = "rdx" in
@@ -106,12 +117,12 @@ and process_binop op nodeId =
             | Cfg.Mul -> binop_str "mul" x_str y_str
             | Cfg.Mod -> div_str x_str y_str true
             | Cfg.Div -> div_str x_str y_str false
-            | Cfg.Eq -> raise TODO
-            | Cfg.Neq -> raise TODO
-            | Cfg.And -> binop_str "and" x_str y_str
-            | Cfg.Or -> binop_str "or" x_str y_str
-            | Cfg.Lt -> raise TODO
-            | Cfg.LtEq -> raise TODO
+            | Cfg.Eq -> binop_cond_str Cfg.Eq x_str y_str
+            | Cfg.Neq -> binop_cond_str Cfg.Neq x_str y_str
+            | Cfg.And -> binop_cond_str Cfg.And x_str y_str
+            | Cfg.Or -> binop_cond_str Cfg.Or x_str y_str
+            | Cfg.Lt -> binop_cond_str Cfg.Lt x_str y_str
+            | Cfg.LtEq -> binop_cond_str Cfg.LtEq x_str y_str
             | _ -> raise (InvalidNode (invalid_node "process_binop" nodeId)) in
         ret
     | _ -> raise (InvalidNode (invalid_node "process_binop" nodeId))
@@ -120,6 +131,7 @@ and process_uniop op nodeId =
     match Cfg.Graph.find_src nodeId with
     | Some n -> raise TODO
     | _ -> raise (InvalidNode (invalid_node "process_uniop" nodeId))
+
 
 let get_dst nodeId =
     let node = Cfg.Graph.find_node nodeId in
@@ -151,6 +163,7 @@ let process_conditional_jmp nid =
                 String.concat "\n" [op1; op2; pop tmp1; pop tmp2;
                                         Printf.sprintf "cmp %s, %s" tmp1 tmp2] in
             procs ^ match op with
+            | Eq -> Printf.sprintf "je %s" jmp_dst
             | Lt -> Printf.sprintf "jl %s" jmp_dst
             | LtEq -> Printf.sprintf "jle %s" jmp_dst
             | _ -> raise (InvalidNode (invalid_node "process_condition, invalid operator" nodeId))
