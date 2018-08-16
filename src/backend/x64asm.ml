@@ -129,7 +129,16 @@ and process_binop op nodeId =
  
 and process_uniop op nodeId =
     match Cfg.Graph.find_src nodeId with
-    | Some n -> raise TODO
+    | Some n ->
+        let n_str = process_expr n in
+        let uniop_str = fun op n ->
+            String.concat "\n" [n; pop tmp1;
+            (Printf.sprintf "%s %s" op tmp1);
+            (push tmp1)] in
+        let ret = match op with
+        | Not -> uniop_str "neg" n_str
+        | _ -> raise (InvalidNode (invalid_node "process_uniop Some n" nodeId)) in
+        ret
     | _ -> raise (InvalidNode (invalid_node "process_uniop" nodeId))
 
 

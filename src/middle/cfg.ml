@@ -77,13 +77,14 @@ end = struct
         | Or -> true
         | _ -> false
 
-    (*  TODO *)
-    let is_uni op =
+    let is_logic_uni op =
         match op with
         | Not -> true
         | _ -> false
 
-    let is_cond op =
+    let is_uni op = is_logic_uni op
+
+    let is_logic_bin op =
         match op with
         | And -> true
         | Or -> true
@@ -94,7 +95,9 @@ end = struct
         | LtEq -> true
         | _ -> false
 
-    let is_logic_bin op = is_cond op
+    let is_cond op =
+        (is_logic_uni op)
+        || (is_logic_bin op)
 
     let is_assign op =
         match op with
